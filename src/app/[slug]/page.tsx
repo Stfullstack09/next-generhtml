@@ -1,12 +1,12 @@
-import Image from "next/image";
 import { Suspense } from "react";
+import Detail from "../Test";
 
 async function getData(id: string) {
     const res = await fetch(`https://backoffice.nodemy.vn/api/blogs/${id}`, {
-        next: { tags: ["post"] },
+        next: {
+            revalidate: 30,
+        },
     });
-    // The return value is *not* serialized
-    // You can return Date, Map, Set, etc.
 
     return res.json();
 }
@@ -15,17 +15,22 @@ async function getDataPhoto() {
     const res = await fetch(
         `https://jsonplaceholder.typicode.com/photos?_limit=15`
     );
-    // The return value is *not* serialized
-    // You can return Date, Map, Set, etc.
 
     return res.json();
 }
 
 // Return a list of `params` to populate the [slug] dynamic segment
+/* 
+
+generateStaticParams = getStaticPath vs getStaticProps
+
+{ cache: "no-store" } => getServerSideProps
+
+*/
+
 export async function generateStaticParams() {
     const posts = await fetch(
-        "https://backoffice.nodemy.vn/api/blogs?poplate=*",
-        { next: { revalidate: 0 } }
+        "https://backoffice.nodemy.vn/api/blogs?poplate=*"
     );
 
     const data = await posts.json();
@@ -35,6 +40,21 @@ export async function generateStaticParams() {
     }));
 
     return dataBuild;
+
+    /* 
+    [
+        {
+            slug :'/1'
+        },
+        {
+            slug :'/2'
+        },
+        {
+            slug :'/3'
+        }
+    ]
+    
+    */
 }
 
 interface IPage {
@@ -54,6 +74,7 @@ export default async function Page({ params }: IPage) {
                     __html: data?.data?.attributes?.content,
                 }}
             ></div>
+            <Detail />
             <Suspense fallback={<div>Loading...</div>}>
                 <ul>
                     {dataPhoto.map((album: any) => (
@@ -65,27 +86,7 @@ export default async function Page({ params }: IPage) {
                         </li>
                     ))}
                 </ul>
-                {/* <Albums promise={dataPhoto} /> */}
             </Suspense>
         </main>
-    );
-}
-
-// Albums Component
-async function Albums({ promise }: { promise: Promise<any[]> }) {
-    // Wait for the albums promise to resolve
-    const albums = await promise;
-
-    return (
-        <ul>
-            {albums.map((album: any) => (
-                <li key={album.id}>
-                    {
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={album.url} alt="" />
-                    }
-                </li>
-            ))}
-        </ul>
     );
 }
